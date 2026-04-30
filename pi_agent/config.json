@@ -1,5 +1,5 @@
 {
-  "receiver_url": "http://10.192.175.133:8765/event",
+  "receiver_url": "http://10.43.250.50:8765/event",
   "match_threshold": 0.55,
   "unknown_cooldown_seconds": 10,
   "camera": {

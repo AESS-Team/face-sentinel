@@ -18,6 +18,16 @@ def _event_id(timestamp: str) -> str:
     return f"{safe_timestamp}-{uuid.uuid4().hex[:8]}"
 
 
+def build_event_record(metadata: dict[str, Any]) -> dict[str, Any]:
+    timestamp = str(metadata.get("timestamp") or _utc_timestamp())
+    event_id = str(metadata.get("event_id") or _event_id(timestamp))
+    return {
+        "event_id": event_id,
+        "timestamp": timestamp,
+        **metadata,
+    }
+
+
 def save_unknown_event(
     events_dir: Path,
     image_bytes: bytes,
@@ -25,18 +35,12 @@ def save_unknown_event(
 ) -> dict[str, Any]:
     events_dir.mkdir(parents=True, exist_ok=True)
 
-    timestamp = str(metadata.get("timestamp") or _utc_timestamp())
-    event_id = str(metadata.get("event_id") or _event_id(timestamp))
+    record = build_event_record({"identity": "unknown", **metadata})
+    record["identity"] = "unknown"
+    event_id = str(record["event_id"])
     image_path = events_dir / f"{event_id}.jpg"
     metadata_path = events_dir / f"{event_id}.json"
 
-    record = {
-        "event_id": event_id,
-        "timestamp": timestamp,
-        "identity": "unknown",
-        **metadata,
-    }
-    record["identity"] = "unknown"
     record["image_file"] = image_path.name
 
     image_path.write_bytes(image_bytes)

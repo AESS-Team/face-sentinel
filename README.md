@@ -95,6 +95,26 @@ First dry-run locally on the Pi, without sending HTTP:
 python3 -m pi_agent.run --dry-run --once
 ```
 
+To debug the complete camera/recognition/HTTP path, run monitor mode. This sends labelled frames to the PC at 2 FPS:
+
+```bash
+python3 -m pi_agent.run --monitor --monitor-fps 2
+```
+
+Monitor frames are labelled as:
+
+```text
+no_face
+known
+unknown
+```
+
+The PC receiver stores them under:
+
+```text
+pc_receiver/received/monitor
+```
+
 Then run normally:
 
 ```bash

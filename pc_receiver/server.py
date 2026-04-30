@@ -9,13 +9,24 @@ from pathlib import Path
 from typing import Any
 
 
+def _safe_label(value: Any) -> str:
+    text = str(value or "event")
+    return "".join(char if char.isalnum() or char in {"-", "_"} else "-" for char in text)
+
+
 def save_received_event(received_dir: Path, payload: dict[str, Any]) -> dict[str, str]:
-    received_dir.mkdir(parents=True, exist_ok=True)
+    target_dir = received_dir
+    if payload.get("event_type") == "monitor":
+        target_dir = received_dir / "monitor"
+    target_dir.mkdir(parents=True, exist_ok=True)
 
     event_id = str(payload["event_id"])
     image_bytes = base64.b64decode(payload["image_base64"])
-    image_path = received_dir / f"{event_id}.jpg"
-    metadata_path = received_dir / f"{event_id}.json"
+    suffix = ""
+    if payload.get("event_type") == "monitor":
+        suffix = f"-{_safe_label(payload.get('status'))}"
+    image_path = target_dir / f"{event_id}{suffix}.jpg"
+    metadata_path = target_dir / f"{event_id}{suffix}.json"
 
     metadata = {key: value for key, value in payload.items() if key != "image_base64"}
     metadata["image_file"] = image_path.name
