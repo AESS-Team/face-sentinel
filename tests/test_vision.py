@@ -1,6 +1,11 @@
 import unittest
 
-from pi_agent.vision import FaceEngine, largest_face
+from pi_agent.vision import (
+    FaceEngine,
+    create_face_detector,
+    create_face_recognizer,
+    largest_face,
+)
 
 
 class FakeFeature:
@@ -20,6 +25,33 @@ class FakeRecognizer:
 
     def feature(self, aligned):
         return FakeFeature()
+
+
+class ModernDetectorClass:
+    @staticmethod
+    def create(*args):
+        return ("modern-detector", args)
+
+
+class ModernRecognizerClass:
+    @staticmethod
+    def create(*args):
+        return ("modern-recognizer", args)
+
+
+class ModernCv2:
+    FaceDetectorYN = ModernDetectorClass
+    FaceRecognizerSF = ModernRecognizerClass
+
+
+class LegacyCv2:
+    @staticmethod
+    def FaceDetectorYN_create(*args):
+        return ("legacy-detector", args)
+
+    @staticmethod
+    def FaceRecognizerSF_create(*args):
+        return ("legacy-recognizer", args)
 
 
 class VisionTests(unittest.TestCase):
@@ -43,6 +75,26 @@ class VisionTests(unittest.TestCase):
 
         self.assertEqual(embedding, [0.1, 0.2, 0.3])
         self.assertEqual(engine.recognizer.face_box_type_name, "ndarray")
+
+    def test_create_face_detector_supports_modern_opencv_api(self):
+        detector = create_face_detector(ModernCv2, "detector.onnx", (640, 480), 0.9, 0.3, 5000)
+
+        self.assertEqual(detector[0], "modern-detector")
+
+    def test_create_face_detector_supports_legacy_opencv_api(self):
+        detector = create_face_detector(LegacyCv2, "detector.onnx", (640, 480), 0.9, 0.3, 5000)
+
+        self.assertEqual(detector[0], "legacy-detector")
+
+    def test_create_face_recognizer_supports_modern_opencv_api(self):
+        recognizer = create_face_recognizer(ModernCv2, "recognizer.onnx")
+
+        self.assertEqual(recognizer[0], "modern-recognizer")
+
+    def test_create_face_recognizer_supports_legacy_opencv_api(self):
+        recognizer = create_face_recognizer(LegacyCv2, "recognizer.onnx")
+
+        self.assertEqual(recognizer[0], "legacy-recognizer")
 
 
 if __name__ == "__main__":

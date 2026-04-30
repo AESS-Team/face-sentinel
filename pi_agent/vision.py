@@ -10,6 +10,31 @@ class VisionSetupError(RuntimeError):
     pass
 
 
+def create_face_detector(
+    cv2_module: Any,
+    model_path: str,
+    input_size: tuple[int, int],
+    score_threshold: float,
+    nms_threshold: float,
+    top_k: int,
+) -> Any:
+    args = (model_path, "", input_size, score_threshold, nms_threshold, top_k)
+    if hasattr(cv2_module, "FaceDetectorYN") and hasattr(cv2_module.FaceDetectorYN, "create"):
+        return cv2_module.FaceDetectorYN.create(*args)
+    if hasattr(cv2_module, "FaceDetectorYN_create"):
+        return cv2_module.FaceDetectorYN_create(*args)
+    raise VisionSetupError("This OpenCV build does not include FaceDetectorYN. Install opencv-contrib.")
+
+
+def create_face_recognizer(cv2_module: Any, model_path: str) -> Any:
+    args = (model_path, "")
+    if hasattr(cv2_module, "FaceRecognizerSF") and hasattr(cv2_module.FaceRecognizerSF, "create"):
+        return cv2_module.FaceRecognizerSF.create(*args)
+    if hasattr(cv2_module, "FaceRecognizerSF_create"):
+        return cv2_module.FaceRecognizerSF_create(*args)
+    raise VisionSetupError("This OpenCV build does not include FaceRecognizerSF. Install opencv-contrib.")
+
+
 def largest_face(faces: Iterable[Any] | None) -> list[float] | None:
     if faces is None:
         return None
@@ -44,15 +69,15 @@ class FaceEngine:
         self.config = config
         self._require_file(config.detector_model_path)
         self._require_file(config.recognition_model_path)
-        self.detector = cv2.FaceDetectorYN.create(
+        self.detector = create_face_detector(
+            cv2,
             str(config.detector_model_path),
-            "",
             (config.camera_width, config.camera_height),
             config.detector_score_threshold,
             config.nms_threshold,
             config.top_k,
         )
-        self.recognizer = cv2.FaceRecognizerSF.create(str(config.recognition_model_path), "")
+        self.recognizer = create_face_recognizer(cv2, str(config.recognition_model_path))
 
     def _require_file(self, path: Path) -> None:
         if not path.exists():
