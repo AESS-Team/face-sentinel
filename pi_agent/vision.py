@@ -67,7 +67,10 @@ class FaceEngine:
         return [list(face) for face in faces]
 
     def embedding_for_face(self, frame: Any, face: list[float]) -> list[float]:
-        aligned = self.recognizer.alignCrop(frame, face)
+        import numpy as np  # type: ignore
+
+        face_box = np.asarray(face, dtype=np.float32)
+        aligned = self.recognizer.alignCrop(frame, face_box)
         feature = self.recognizer.feature(aligned)
         return [float(value) for value in feature.flatten()]
 
