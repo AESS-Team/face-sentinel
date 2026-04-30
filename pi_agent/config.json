@@ -1,0 +1,19 @@
+{
+  "receiver_url": "http://10.192.175.133:8765/event",
+  "match_threshold": 0.55,
+  "unknown_cooldown_seconds": 10,
+  "camera": {
+    "width": 640,
+    "height": 480
+  },
+  "detector": {
+    "score_threshold": 0.9,
+    "nms_threshold": 0.3,
+    "top_k": 5000
+  },
+  "paths": {
+    "known_faces_dir": "known_faces",
+    "events_dir": "events",
+    "models_dir": "models"
+  }
+}

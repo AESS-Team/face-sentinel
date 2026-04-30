@@ -1,0 +1,17 @@
+# Python
+__pycache__/
+*.py[cod]
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+.venv/
+venv/
+
+# Local secrets/config overrides
+.env
+*.local.json
+
+# Private face/event data
+pi_agent/known_faces/
+pi_agent/events/
+pc_receiver/received/

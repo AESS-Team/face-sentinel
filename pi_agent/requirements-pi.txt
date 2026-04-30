@@ -1,0 +1,4 @@
+# Runtime dependencies are installed with apt on Raspberry Pi OS:
+# sudo apt install -y python3-opencv python3-picamera2
+#
+# This project uses Python stdlib for HTTP sending and config parsing.
