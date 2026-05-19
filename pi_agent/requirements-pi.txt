@@ -1,4 +1,5 @@
-# Runtime dependencies are installed with apt on Raspberry Pi OS:
-# sudo apt install -y python3-opencv python3-picamera2
+# Runtime camera dependencies are installed with apt on Raspberry Pi OS:
+# sudo apt install -y python3-opencv python3-picamera2 alsa-utils
 #
-# This project uses Python stdlib for HTTP sending and config parsing.
+# Gemini voice gatekeeper:
+google-genai>=1.0.0

@@ -5,11 +5,13 @@ import socket
 import time
 from dataclasses import dataclass
 from pathlib import Path
-from typing import Any
+from typing import Any, Protocol
 
 from .config import AgentConfig, load_config
 from .events import build_event_payload, build_event_record, post_event, save_unknown_event
 from .face_db import load_embeddings
+from .gatekeeper import build_gatekeeper_session
+from .presence import HumanPresenceDetector, PresenceAnalysis
 from .recognition import MatchDecision, best_identity_match
 from .vision import FaceEngine, VisionSetupError
 
@@ -136,6 +138,16 @@ class FrameAnalysis:
         return None
 
 
+class UnknownGatekeeper(Protocol):
+    def run(self) -> bool:
+        raise NotImplementedError
+
+
+class PresenceDetector(Protocol):
+    def analyze(self, frame: Any) -> PresenceAnalysis:
+        raise NotImplementedError
+
+
 def analyze_frame(
     config: AgentConfig,
     engine: FaceEngine,
@@ -237,6 +249,25 @@ def process_frame(
     return emitted, analysis
 
 
+def process_presence_gatekeeper(
+    detector: PresenceDetector,
+    frame: Any,
+    gatekeeper_session: UnknownGatekeeper | None,
+    can_run_gatekeeper: bool,
+) -> tuple[bool, bool, PresenceAnalysis]:
+    analysis = detector.analyze(frame)
+    primary = analysis.primary_detection
+    if primary is None:
+        print("No person present")
+        return False, False, analysis
+
+    print(f"person_present detector={primary.label} score={primary.score:.3f}")
+    if gatekeeper_session is None or not can_run_gatekeeper:
+        return False, False, analysis
+
+    return True, gatekeeper_session.run(), analysis
+
+
 def main() -> None:
     parser = argparse.ArgumentParser(description="Run Face Sentinel on the Raspberry Pi.")
     parser.add_argument(
@@ -256,20 +287,42 @@ def main() -> None:
 
     config = load_config(Path(args.config))
     known_embeddings = load_embeddings(config.embeddings_path)
-    if not known_embeddings:
+    if not known_embeddings and not (config.gatekeeper_enabled and config.presence_enabled):
         raise SystemExit(f"No enrolled faces found at {config.embeddings_path}. Run python -m pi_agent.enroll first.")
+    if not known_embeddings:
+        print(f"No enrolled faces found at {config.embeddings_path}; continuing with presence gatekeeper only.")
 
     engine = FaceEngine(config)
     camera = open_camera(config, args.camera)
+    gatekeeper_session = build_gatekeeper_session(config) if config.gatekeeper_enabled else None
+    presence_detector = HumanPresenceDetector(config) if config.presence_enabled and gatekeeper_session is not None else None
     last_unknown_at = 0.0
     last_monitor_at = 0.0
+    last_gatekeeper_attempt_at = 0.0
+    last_gatekeeper_passed_at = 0.0
     monitor_interval = 1.0 / args.monitor_fps
 
     try:
         while True:
             now = time.monotonic()
-            can_emit_unknown = now - last_unknown_at >= config.unknown_cooldown_seconds
+            can_emit_unknown = bool(known_embeddings) and now - last_unknown_at >= config.unknown_cooldown_seconds
+            can_run_gatekeeper = (
+                now - last_gatekeeper_attempt_at >= config.presence_cooldown_seconds
+                and now - last_gatekeeper_passed_at >= config.gatekeeper_silence_after_pass_seconds
+            )
             frame = camera.read()
+            if presence_detector is not None:
+                gatekeeper_ran, gatekeeper_passed, _presence_analysis = process_presence_gatekeeper(
+                    presence_detector,
+                    frame,
+                    gatekeeper_session,
+                    can_run_gatekeeper,
+                )
+                if gatekeeper_ran:
+                    last_gatekeeper_attempt_at = now
+                if gatekeeper_passed:
+                    last_gatekeeper_passed_at = now
+
             emitted, analysis = process_frame(config, engine, frame, known_embeddings, args.dry_run, can_emit_unknown)
             if emitted:
                 last_unknown_at = now

@@ -11,6 +11,23 @@
     "nms_threshold": 0.3,
     "top_k": 5000
   },
+  "gatekeeper": {
+    "enabled": true,
+    "questions_to_pass": 2,
+    "max_rounds": 4,
+    "record_seconds": 5,
+    "silence_after_pass_seconds": 60,
+    "audio_dir": "gatekeeper_audio",
+    "gemini_model": "gemini-3.1-flash-lite",
+    "tts_model": "gemini-3.1-flash-tts-preview",
+    "voice_name": "Kore"
+  },
+  "presence": {
+    "enabled": true,
+    "cooldown_seconds": 10,
+    "haar_scale_factor": 1.1,
+    "haar_min_neighbors": 4
+  },
   "paths": {
     "known_faces_dir": "known_faces",
     "events_dir": "events",

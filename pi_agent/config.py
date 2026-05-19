@@ -22,6 +22,19 @@ class AgentConfig:
     embeddings_path: Path
     detector_model_path: Path
     recognition_model_path: Path
+    gatekeeper_enabled: bool
+    gatekeeper_questions_to_pass: int
+    gatekeeper_max_rounds: int
+    gatekeeper_record_seconds: float
+    gatekeeper_silence_after_pass_seconds: float
+    gatekeeper_audio_dir: Path
+    gatekeeper_voice_name: str
+    gatekeeper_gemini_model: str
+    gatekeeper_tts_model: str
+    presence_enabled: bool
+    presence_cooldown_seconds: float
+    presence_haar_scale_factor: float
+    presence_haar_min_neighbors: int
 
 
 def _resolve_path(base_dir: Path, value: str) -> Path:
@@ -37,10 +50,13 @@ def load_config(config_path: Path) -> AgentConfig:
     camera = raw.get("camera", {})
     paths = raw.get("paths", {})
     detector = raw.get("detector", {})
+    gatekeeper = raw.get("gatekeeper", {})
+    presence = raw.get("presence", {})
 
     known_faces_dir = _resolve_path(base_dir, paths.get("known_faces_dir", "known_faces"))
     events_dir = _resolve_path(base_dir, paths.get("events_dir", "events"))
     models_dir = _resolve_path(base_dir, paths.get("models_dir", "models"))
+    gatekeeper_audio_dir = _resolve_path(base_dir, gatekeeper.get("audio_dir", "gatekeeper_audio"))
 
     return AgentConfig(
         receiver_url=raw.get("receiver_url", "http://127.0.0.1:8765/event"),
@@ -57,4 +73,17 @@ def load_config(config_path: Path) -> AgentConfig:
         embeddings_path=known_faces_dir / "embeddings.json",
         detector_model_path=models_dir / "face_detection_yunet_2023mar.onnx",
         recognition_model_path=models_dir / "face_recognition_sface_2021dec.onnx",
+        gatekeeper_enabled=bool(gatekeeper.get("enabled", False)),
+        gatekeeper_questions_to_pass=int(gatekeeper.get("questions_to_pass", 2)),
+        gatekeeper_max_rounds=int(gatekeeper.get("max_rounds", 4)),
+        gatekeeper_record_seconds=float(gatekeeper.get("record_seconds", 5.0)),
+        gatekeeper_silence_after_pass_seconds=float(gatekeeper.get("silence_after_pass_seconds", 60.0)),
+        gatekeeper_audio_dir=gatekeeper_audio_dir,
+        gatekeeper_voice_name=gatekeeper.get("voice_name", "Kore"),
+        gatekeeper_gemini_model=gatekeeper.get("gemini_model", "gemini-3.1-flash-lite"),
+        gatekeeper_tts_model=gatekeeper.get("tts_model", "gemini-3.1-flash-tts-preview"),
+        presence_enabled=bool(presence.get("enabled", True)),
+        presence_cooldown_seconds=float(presence.get("cooldown_seconds", 10.0)),
+        presence_haar_scale_factor=float(presence.get("haar_scale_factor", 1.1)),
+        presence_haar_min_neighbors=int(presence.get("haar_min_neighbors", 4)),
     )
